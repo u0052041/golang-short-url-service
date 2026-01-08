@@ -1,17 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App      AppConfig
-	Postgres PostgresConfig
-	Redis    RedisConfig
+	App       AppConfig
+	Postgres  PostgresConfig
+	Redis     RedisConfig
 	RateLimit RateLimitConfig
-	URL      URLConfig
+	URL       URLConfig
 }
 
 type AppConfig struct {
@@ -125,10 +126,13 @@ func setDefaults() {
 }
 
 func (c *PostgresConfig) DSN() string {
-	return "postgres://" + c.User + ":" + c.Password + "@" + c.Host + ":" + c.Port + "/" + c.DBName + "?sslmode=" + c.SSLMode
+	// Keyword/Value format - no need for URL encoding
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode,
+	)
 }
 
 func (c *RedisConfig) Addr() string {
 	return c.Host + ":" + c.Port
 }
-
