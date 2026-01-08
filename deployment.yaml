@@ -76,15 +76,15 @@ spec:
         env:
         - name: GIN_MODE
           value: "release"
-        - name: DB_USER
+        - name: POSTGRES_USER
           valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: username } }
-        - name: DB_PASS
+        - name: POSTGRES_PASSWORD
           valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: password } }
-        - name: DB_NAME
+        - name: POSTGRES_DB
           valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: database } }
-        - name: DB_HOST
+        - name: POSTGRES_HOST
           valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: db_host } }
-        - name: DB_PORT
+        - name: POSTGRES_PORT
           value: "5432"
         - name: REDIS_HOST
           value: "redis-service"
