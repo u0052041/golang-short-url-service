@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internal-redis
+  labels:
+    app: internal-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: internal-redis
+  template:
+    metadata:
+      labels:
+        app: internal-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+spec:
+  selector:
+    app: internal-redis
+  ports:
+  - protocol: TCP
+    port: 6379
+    targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shortener-deploy
+  labels:
+    app: shortener
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: shortener
+  template:
+    metadata:
+      labels:
+        app: shortener
+    spec:      
+      containers:
+      - name: shortener-app
+        image: asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener:v1
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GIN_MODE
+          value: "release"
+        - name: DB_USER
+          valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: username } }
+        - name: DB_PASS
+          valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: password } }
+        - name: DB_NAME
+          valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: database } }
+        - name: DB_HOST
+          valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: db_host } }
+        - name: DB_PORT
+          value: "5432"
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: REDIS_PORT
+          value: "6379"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh","-c","sleep 5"]
+        livenessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shortener-service
+spec:
+  type: ClusterIP
+  selector:
+    app: shortener
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
