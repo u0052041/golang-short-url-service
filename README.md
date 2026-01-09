@@ -53,15 +53,16 @@ docker-compose -f docker-compose.local.yml up -d
 ### 1. 首次部署
 
 ```bash
-# 使用 commit SHA 作為版本號，同時打 latest 和版本號
+# 使用 commit SHA 作為版本號
 VERSION=$(git rev-parse --short HEAD)
 IMAGE=asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener
 
-# 打包（同時打兩個 tag）
-gcloud builds submit --tag $IMAGE:$VERSION --tag $IMAGE:latest
+# 打包
+gcloud builds submit --tag $IMAGE:$VERSION
 
-# 部署（使用 latest）
+# 部署（先 apply，再指定版本號）
 kubectl apply -f deployment.yaml
+kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:$VERSION
 ```
 
 ### 2. 更新部署
@@ -71,17 +72,17 @@ kubectl apply -f deployment.yaml
 VERSION=$(git rev-parse --short HEAD)
 IMAGE=asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener
 
-# 打包（同時打兩個 tag）
-gcloud builds submit --tag $IMAGE:$VERSION --tag $IMAGE:latest
+# 打包
+gcloud builds submit --tag $IMAGE:$VERSION
 
-# 更新镜像（使用 latest，自動拉取最新版本）
-kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:latest
+# 更新镜像（使用版本號，會自動觸發重新部署）
+kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:$VERSION
 
 # 檢查更新狀態
 kubectl rollout status deployment/shortener-deploy
 ```
 
-> 需要回滾時：`kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:<具體版本號>`
+> 需要回滾時：`kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:<舊版本號>`
 
 ### 3. 資料庫 Migration
 

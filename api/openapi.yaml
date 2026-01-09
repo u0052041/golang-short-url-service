@@ -6,8 +6,8 @@ info:
     本檔案為 OpenAPI 規格，可用於 Swagger UI / Postman / Insomnia 匯入。
   version: 1.0.0
 servers:
-  - url: http://localhost
-    description: Local (default)
+  - url: /
+    description: Current server
 tags:
   - name: ShortURL
     description: 短網址建立與查詢

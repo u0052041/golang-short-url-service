@@ -59,7 +59,7 @@ spec:
     spec:      
       containers:
       - name: shortener-app
-        image: asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener:latest
+        image: asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener:v1
         imagePullPolicy: Always
         resources:
           requests:
@@ -73,6 +73,8 @@ spec:
         env:
         - name: GIN_MODE
           value: "release"
+        - name: APP_BASE_URL
+          valueFrom: { secretKeyRef: { name: shortener-config, key: app_base_url } }
         - name: POSTGRES_USER
           valueFrom: { secretKeyRef: { name: cloudsql-db-credentials, key: username } }
         - name: POSTGRES_PASSWORD
@@ -98,11 +100,11 @@ spec:
         livenessProbe:
           httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 10
-          periodSeconds: 15
+          periodSeconds: 30
         readinessProbe:
           httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 5
-          periodSeconds: 5
+          periodSeconds: 30
 ---
 apiVersion: v1
 kind: Service
