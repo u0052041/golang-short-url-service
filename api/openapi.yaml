@@ -49,7 +49,7 @@ paths:
                 invalid_request:
                   value:
                     error: invalid_request
-                    message: Invalid request body: ...
+                    message: "Invalid request body"
         '429':
           description: Too Many Requests（速率限制）
           headers:
@@ -69,7 +69,7 @@ paths:
                 rate_limited:
                   value:
                     error: rate limit exceeded
-                    message: Too many requests. Please try again later.
+                    message: "Too many requests. Please try again later."
         '200':
           description: 內部錯誤（依需求不回 500，改回 200 + ErrorResponse）
           content:
@@ -80,7 +80,7 @@ paths:
                 internal_error:
                   value:
                     error: internal_error
-                    message: Failed to create short URL
+                    message: "Failed to create short URL"
 
   /api/v1/stats/{code}:
     get:
@@ -118,7 +118,7 @@ paths:
                 not_found:
                   value:
                     error: not_found
-                    message: Short URL not found
+                    message: "Short URL not found"
         '429':
           description: Too Many Requests（速率限制）
           headers:
@@ -183,7 +183,7 @@ paths:
                 expired:
                   value:
                     error: expired
-                    message: This short URL has expired
+                    message: "This short URL has expired"
         '429':
           description: Too Many Requests（速率限制）
           headers:

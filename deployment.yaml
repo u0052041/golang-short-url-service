@@ -48,10 +48,7 @@ metadata:
 spec:
   replicas: 2
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    type: Recreate
   selector:
     matchLabels:
       app: shortener
@@ -90,6 +87,10 @@ spec:
           value: "redis-service"
         - name: REDIS_PORT
           value: "6379"
+        - name: AUTH_BASIC_USER
+          valueFrom: { secretKeyRef: { name: shortener-auth, key: user } }
+        - name: AUTH_BASIC_PASSWORD
+          valueFrom: { secretKeyRef: { name: shortener-auth, key: password } }
         lifecycle:
           preStop:
             exec:
