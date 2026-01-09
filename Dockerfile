@@ -25,6 +25,8 @@ RUN addgroup -g 1000 appgroup && \
 
 WORKDIR /app
 COPY --from=builder /app/server .
+# 複製 OpenAPI 規格文件（供 Swagger UI 使用）
+COPY --from=builder /app/api ./api
 USER appuser
 
 EXPOSE 8080

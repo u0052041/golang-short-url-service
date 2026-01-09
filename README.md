@@ -1,293 +1,101 @@
 # Short URL Service
 
-高性能短網址服務，使用 Go 構建，支持 Redis 緩存和 PostgreSQL 持久化存儲。
-
-## 功能特點
-
-- 🚀 **高性能**: 基於 Gin 框架，支持高並發請求
-- 💾 **雙層存儲**: Redis 緩存 + PostgreSQL 持久化
-- 🔒 **速率限制**: 基於 Redis 的分布式速率限制
-- 🐳 **容器化**: 完整的 Docker Compose 部署方案
-- ⚡ **Nginx 反向代理**: 負載均衡、Gzip 壓縮、安全 Headers
-- 📊 **訪問統計**: 記錄點擊次數和訪問日誌
-
-## 系統架構
-
-```
-                    ┌─────────────┐
-                    │   Client    │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │    Nginx    │
-                    │  (Port 80)  │
-                    └──────┬──────┘
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-        ┌─────▼─────┐ ┌────▼────┐ ┌─────▼─────┐
-        │  Go API   │ │ Go API  │ │  Go API   │
-        │ Instance 1│ │Instance2│ │ Instance N│
-        └─────┬─────┘ └────┬────┘ └─────┬─────┘
-              │            │            │
-              └────────────┼────────────┘
-                           │
-              ┌────────────┼────────────┐
-              │                         │
-        ┌─────▼─────┐           ┌───────▼───────┐
-        │   Redis   │           │  PostgreSQL   │
-        │  (Cache)  │           │ (Persistent)  │
-        └───────────┘           └───────────────┘
-```
+高性能短網址服務，Go + Redis + PostgreSQL。
 
 ## 快速開始
 
-### 前置需求
-
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-
-### 啟動服務
-
-1. **複製環境變數文件**
-
 ```bash
+# 本地開發
 cp env.local .env
+docker-compose -f docker-compose.local.yml up -d
 ```
 
-2. **編輯配置**（可選）
+## API
 
-```bash
-vim .env
-```
+| 方法 | 路徑 | 說明 |
+|------|------|------|
+| POST | `/api/v1/shorten` | 創建短網址 |
+| GET | `/api/v1/stats/{code}` | 查詢統計 |
+| GET | `/{code}` | 重定向 |
+| GET | `/health` | 健康檢查（GKE 監控用） |
+| GET | `/docs/index.html` | Swagger UI（需認證） |
 
-> 注意：`docker-compose.yml` 不再提供 PostgreSQL 預設密碼，請務必在 `.env` 設定 `POSTGRES_PASSWORD`，避免使用弱密碼誤上線。
+### Swagger UI
 
-3. **啟動所有服務**
-
-```bash
-docker-compose up -d
-```
-
-4. **查看服務狀態**
-
-```bash
-docker-compose ps
-```
-
-5. **查看日誌**
-
-```bash
-docker-compose logs -f
-```
-
-### 開發模式
-
-使用開發配置啟動（暴露數據庫端口）：
-
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-```
-
-## API 文檔
-
-### OpenAPI / Swagger（推薦）
-
-本專案提供一份 OpenAPI 規格檔：`api/openapi.yaml`，可用於 Swagger UI / Postman / Insomnia 匯入與維護；README 只保留最常用的快速範例。
-
-**用 Swagger UI 本地預覽（需要 Docker）**：
-
-```bash
-docker run --rm -p 8081:8080 \
-  -e SWAGGER_JSON=/spec/openapi.yaml \
-  -v "$(pwd)/api/openapi.yaml:/spec/openapi.yaml:ro" \
-  swaggerapi/swagger-ui
-```
-
-然後打開 `http://localhost:8081`。
-
-### 端點一覽（僅列路由，格式以 OpenAPI 為準）
-
-- `POST /api/v1/shorten`
-- `GET /api/v1/stats/{code}`
-- `GET /{code}`（301 redirect）
-- `GET /health`
-- `GET /health/detailed`
+訪問 `/docs/index.html`，需要 Basic Auth 認證（由 `AUTH_BASIC_USER` 和 `AUTH_BASIC_PASSWORD` 設定）。
 
 ## 環境變數
 
 | 變數 | 說明 | 預設值 |
 |------|------|--------|
-| `APP_ENV` | 運行環境 (production/development) | production |
-| `APP_PORT` | 應用端口 | 8080 |
+| `APP_ENV` | 運行環境 | production |
 | `APP_BASE_URL` | 短網址基礎 URL | http://localhost |
-| `POSTGRES_HOST` | PostgreSQL 主機 | postgres |
+| `POSTGRES_HOST` | PostgreSQL 主機 | localhost |
 | `POSTGRES_PORT` | PostgreSQL 端口 | 5432 |
 | `POSTGRES_USER` | PostgreSQL 用戶 | shorturl |
-| `POSTGRES_PASSWORD` | PostgreSQL 密碼 | shorturl_secret |
+| `POSTGRES_PASSWORD` | PostgreSQL 密碼 | shorturl |
 | `POSTGRES_DB` | PostgreSQL 數據庫 | shorturl |
-| `REDIS_HOST` | Redis 主機 | redis |
+| `POSTGRES_SSLMODE` | SSL 模式 | disable |
+| `REDIS_HOST` | Redis 主機 | localhost |
 | `REDIS_PORT` | Redis 端口 | 6379 |
 | `REDIS_PASSWORD` | Redis 密碼 | (空) |
-| `RATE_LIMIT_REQUESTS` | 每分鐘請求限制 | 100 |
+| `REDIS_DB` | Redis DB | 0 |
+| `REDIS_POOL_SIZE` | Redis 連接池大小 | 10 |
+| `RATE_LIMIT_REQUESTS` | 請求限制 | 100 |
 | `RATE_LIMIT_DURATION` | 限制時間窗口 | 1m |
+| `AUTH_BASIC_USER` | Swagger Basic Auth 用戶 | (必填) |
+| `AUTH_BASIC_PASSWORD` | Swagger Basic Auth 密碼 | (必填) |
 
-## 項目結構
+## GKE 部署
 
-```
-golang-short-url-service/
-├── cmd/
-│   └── server/
-│       └── main.go              # 應用入口
-├── internal/
-│   ├── config/
-│   │   └── config.go            # 配置管理
-│   ├── handler/
-│   │   └── handler.go           # HTTP 處理器
-│   ├── middleware/
-│   │   └── ratelimit.go         # 速率限制
-│   ├── model/
-│   │   └── url.go               # 數據模型
-│   ├── repository/
-│   │   ├── postgres.go          # PostgreSQL 操作
-│   │   └── redis.go             # Redis 操作
-│   └── service/
-│       └── shorturl.go          # 業務邏輯
-├── migrations/
-│   └── 001_init.sql             # 數據庫初始化
-├── nginx/
-│   ├── nginx.conf               # Nginx 主配置
-│   └── conf.d/
-│       └── default.conf         # 站點配置
-├── docker/
-│   └── Dockerfile               # 多階段構建
-├── docker-compose.yml           # 生產環境
-├── docker-compose.dev.yml       # 開發環境
-├── env.local                  # 環境變數範本
-├── go.mod
-└── README.md
-```
+使用 Cloud SQL（PostgreSQL）和集群內 Redis。
 
-## 短碼生成算法
-
-使用 PostgreSQL BIGSERIAL 自增 ID + Base62 編碼：
-
-```
-ID: 1      → 短碼: "000001"
-ID: 62     → 短碼: "000010"
-ID: 1000   → 短碼: "0000g8"
-ID: 100000 → 短碼: "000q0U"
-```
-
-Base62 字符集: `0-9A-Za-z`
-
-## 性能優化
-
-### 點擊計數策略
-
-採用 **Redis INCR + 定期批次同步** 策略，大幅減少資料庫寫入壓力：
-
-```
-┌─────────────┐     INCR      ┌─────────────┐
-│   Request   │ ───────────▶  │    Redis    │
-│  (點擊事件)  │               │ clicks:xxx  │
-└─────────────┘               └──────┬──────┘
-                                     │
-                              每小時同步一次
-                                     │
-                                     ▼
-                              ┌─────────────┐
-                              │ PostgreSQL  │
-                              │ click_count │
-                              └─────────────┘
-```
-
-**工作流程：**
-1. 每次點擊時，使用 `Redis INCR` 原子操作累加計數
-2. 後台 Scheduler 每小時執行一次批次同步
-3. 同步時使用 `GETDEL` 原子獲取並清除 Redis 計數
-4. 批量更新到 PostgreSQL
-5. 優雅關閉時會執行最終同步，確保數據不丟失
-
-**優點：**
-- 高並發下 Redis INCR 性能極佳
-- 減少 99% 以上的資料庫寫入
-- 查詢統計時自動合併 DB + Redis 待同步數據
-
-### Redis 緩存策略
-
-- 熱門 URL 緩存 TTL: 1 小時
-- 緩存未命中時從 PostgreSQL 讀取並回填
-- 點擊計數使用獨立 key (`clicks:{shortCode}`)
-
-### 數據庫連接池
-
-- 最大連接數: 25
-- 最小連接數: 5
-- 連接最大生命週期: 1 小時
-
-### Nginx 優化
-
-- Gzip 壓縮
-- Keep-alive 連接
-- 請求緩衝
-- 負載均衡 (least_conn)
-
-## 生產部署建議
-
-### 安全性
-
-1. **更改默認密碼**
-   ```bash
-   # 生成強密碼
-   openssl rand -base64 32
-   ```
-
-2. **啟用 HTTPS**
-   - 在 Nginx 配置 SSL 證書
-   - 使用 Let's Encrypt 免費證書
-
-3. **限制數據庫訪問**
-   - 不要暴露 PostgreSQL/Redis 端口到公網
-
-
-### 水平擴展
-
-修改 `docker-compose.yml` 添加更多 API 實例：
-
-```yaml
-services:
-  api:
-    deploy:
-      replicas: 3
-```
-
-## 常用命令
+### 1. 首次部署
 
 ```bash
-# 啟動服務
-docker-compose up -d
+# 使用 commit SHA 作為版本號，同時打 latest 和版本號
+VERSION=$(git rev-parse --short HEAD)
+IMAGE=asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener
 
-# 停止服務
-docker-compose down
+# 打包（同時打兩個 tag）
+gcloud builds submit --tag $IMAGE:$VERSION --tag $IMAGE:latest
 
-# 查看日誌
-docker-compose logs -f api
-
-# 重建鏡像
-docker-compose build --no-cache
-
-# 進入容器
-docker exec -it shorturl-api sh
-
-# 連接數據庫
-docker exec -it shorturl-postgres psql -U shorturl -d shorturl
-
-# 連接 Redis
-docker exec -it shorturl-redis redis-cli
+# 部署（使用 latest）
+kubectl apply -f deployment.yaml
 ```
 
-## 許可證
+### 2. 更新部署
 
-MIT License
+```bash
+# 使用 commit SHA 作為版本號
+VERSION=$(git rev-parse --short HEAD)
+IMAGE=asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener
 
+# 打包（同時打兩個 tag）
+gcloud builds submit --tag $IMAGE:$VERSION --tag $IMAGE:latest
+
+# 更新镜像（使用 latest，自動拉取最新版本）
+kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:latest
+
+# 檢查更新狀態
+kubectl rollout status deployment/shortener-deploy
+```
+
+> 需要回滾時：`kubectl set image deployment/shortener-deploy shortener-app=$IMAGE:<具體版本號>`
+
+### 3. 資料庫 Migration
+
+```bash
+# 從本地連接 Cloud SQL Private IP 執行（需要能訪問 Private IP）
+psql -h <Cloud-SQL-Private-IP> -U shorturl -d shorturl -f migrations/001_init.sql
+
+# 或使用臨時 Pod 執行（需要先安裝 postgresql-client）
+kubectl run postgres-client --rm -it --image=postgres:15 --restart=Never -- \
+  psql -h <Cloud-SQL-Private-IP> -U shorturl -d shorturl -f - < migrations/001_init.sql
+```
+
+---
+
+## License
+
+MIT

@@ -62,7 +62,7 @@ spec:
     spec:      
       containers:
       - name: shortener-app
-        image: asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener:v1
+        image: asia-east1-docker.pkg.dev/golang-short-url-service/golang-short-url/shortener:latest
         imagePullPolicy: Always
         resources:
           requests:

@@ -13,8 +13,6 @@ tags:
     description: 短網址建立與查詢
   - name: Redirect
     description: 短網址重定向
-  - name: Health
-    description: 健康檢查
 
 paths:
   /api/v1/shorten:
@@ -207,46 +205,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /health:
-    get:
-      tags: [Health]
-      summary: 健康檢查
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: healthy
-                required: [status]
-
-  /health/detailed:
-    get:
-      tags: [Health]
-      summary: 詳細健康檢查（內部用途）
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: healthy
-                  postgres:
-                    type: string
-                    example: connected
-                  redis:
-                    type: string
-                    example: connected
-                required: [status, postgres, redis]
 
 components:
   schemas:

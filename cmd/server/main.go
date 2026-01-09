@@ -55,7 +55,15 @@ func main() {
 
 	h := handler.NewHandler(shortURLService)
 
+	// 一般 API 限流（使用配置文件設定）
 	rateLimiter := middleware.NewRateLimiter(redisRepo.Client(), &cfg.RateLimit)
+
+	// 創建短網址的嚴格限流（10次/分鐘）
+	strictRateLimitConfig := &config.RateLimitConfig{
+		Requests: 10,
+		Duration: time.Minute,
+	}
+	strictRateLimiter := middleware.NewRateLimiter(redisRepo.Client(), strictRateLimitConfig)
 
 	router := gin.New()
 
@@ -72,20 +80,26 @@ func main() {
 	// 若服務部署在 Nginx/Proxy 後面，需設定可信任來源，否則 ClientIP() 可能被偽造。
 	router.SetTrustedProxies([]string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"})
 
+	// Swagger UI - API 文檔界面
+	SetupSwagger(router, &cfg.Auth)
+
+	// 健康檢查
 	router.GET("/health", h.Health)
 	router.GET("/health/detailed", h.HealthDetailed)
 
 	api := router.Group("/api/v1")
-	api.Use(rateLimiter.Middleware())
 	{
-		api.POST("/shorten", h.CreateShortURL)
-		api.GET("/stats/:code", h.GetStats)
+		// 創建短網址 - 嚴格限流（10次/分鐘）
+		api.POST("/shorten", strictRateLimiter.Middleware(), h.CreateShortURL)
+		// 統計查詢 - 一般限流
+		api.GET("/stats/:code", rateLimiter.Middleware(), h.GetStats)
 	}
 
+	// 重定向 - 一般限流
 	router.GET("/:code", rateLimiter.Middleware(), h.Redirect)
 
 	srv := &http.Server{
-		Addr:         ":" + cfg.App.Port,
+		Addr:         ":8080",
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -93,7 +107,6 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Server starting on port %s", cfg.App.Port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Failed to start server: %v", err)
 		}

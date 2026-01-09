@@ -13,11 +13,11 @@ type Config struct {
 	Redis     RedisConfig
 	RateLimit RateLimitConfig
 	URL       URLConfig
+	Auth      AuthConfig
 }
 
 type AppConfig struct {
 	Env     string
-	Port    string
 	BaseURL string
 }
 
@@ -50,6 +50,11 @@ type URLConfig struct {
 	ShortCodeLength int
 }
 
+type AuthConfig struct {
+	BasicUser     string
+	BasicPassword string
+}
+
 func Load() (*Config, error) {
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
@@ -65,7 +70,6 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		App: AppConfig{
 			Env:     viper.GetString("APP_ENV"),
-			Port:    viper.GetString("APP_PORT"),
 			BaseURL: viper.GetString("APP_BASE_URL"),
 		},
 		Postgres: PostgresConfig{
@@ -93,6 +97,10 @@ func Load() (*Config, error) {
 			DefaultExpiry:   viper.GetDuration("URL_DEFAULT_EXPIRY"),
 			ShortCodeLength: viper.GetInt("SHORT_CODE_LENGTH"),
 		},
+		Auth: AuthConfig{
+			BasicUser:     viper.GetString("AUTH_BASIC_USER"),
+			BasicPassword: viper.GetString("AUTH_BASIC_PASSWORD"),
+		},
 	}
 
 	return cfg, nil
@@ -100,7 +108,6 @@ func Load() (*Config, error) {
 
 func setDefaults() {
 	viper.SetDefault("APP_ENV", "production")
-	viper.SetDefault("APP_PORT", "8080")
 	viper.SetDefault("APP_BASE_URL", "http://localhost")
 
 	viper.SetDefault("POSTGRES_HOST", "localhost")
